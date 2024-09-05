@@ -277,6 +277,14 @@ void pipe_cycle_WB(Pipeline *p)
                 p->halt = true;
             }
         }
+        #ifdef DEBUG
+                if(p->pipe_latch[MA_LATCH][i].valid){   
+                    printf("Retiring I%lu!\n", p->pipe_latch[MA_LATCH][i].op_id);
+                }
+                else{
+                    printf("Retiring NOP!\n");
+                }
+        #endif
     }
 }
 
@@ -294,6 +302,14 @@ void pipe_cycle_MA(Pipeline *p)
     {
         // Copy each instruction from the EX latch to the MA latch.
         p->pipe_latch[MA_LATCH][i] = p->pipe_latch[EX_LATCH][i];
+        #ifdef DEBUG
+            if(p->pipe_latch[MA_LATCH][i].valid){
+                printf("Moving I%lu from EX to MA...\n", p->pipe_latch[MA_LATCH][i].op_id);
+            }
+            else{
+                printf("Moving NOP from EX to MA...\n");
+            }
+        #endif
     }
 }
 
@@ -313,6 +329,14 @@ void pipe_cycle_EX(Pipeline *p)
        if (p->pipe_latch[ID_LATCH][i].stall){
             p->pipe_latch[EX_LATCH][i].valid = false;
        }
+       #ifdef DEBUG
+            if(p->pipe_latch[EX_LATCH][i].valid){
+                printf("Moving I%lu from ID to EX...\n", p->pipe_latch[MA_LATCH][i].op_id);
+            }
+            else{
+                printf("Moving NOP from ID to EX...\n");
+            }
+        #endif
     }
 }
 
@@ -329,8 +353,6 @@ void pipe_cycle_ID(Pipeline *p)
     for (unsigned int i = 0; i < PIPE_WIDTH; i++)
     {
         // Copy each instruction from the IF latch to the ID latch.
-        //PipelineLatch prevInst2 = p->pipe_latch[MA_LATCH][i];
-        //PipelineLatch prevInst = p->pipe_latch[EX_LATCH][i];
         p->pipe_latch[ID_LATCH][i] = p->pipe_latch[IF_LATCH][i];
         PipelineLatch currInst = p->pipe_latch[ID_LATCH][i];
         uint64_t temp_id = 0;
@@ -432,8 +454,16 @@ void pipe_cycle_ID(Pipeline *p)
             }
                
         }
+        //#ifdef DEBUG
+          //      printf("tracked ID: %lu\n\n", track_id[i]);
+        //#endif
         #ifdef DEBUG
-                printf("tracked ID: %lu\n\n", track_id[i]);
+            if(p->pipe_latch[ID_LATCH][i].valid){
+                printf("Moving I%lu from IF to ID...\n", p->pipe_latch[ID_LATCH][i].op_id);
+            }
+            else{
+                printf("Moving NOP from IF to ID...\n");
+            }
         #endif
     }
 }
@@ -467,6 +497,7 @@ void pipe_cycle_IF(Pipeline *p)
         else{
             p->pipe_latch[IF_LATCH][i].stall = true;
         }
+        
     }
 }
 
