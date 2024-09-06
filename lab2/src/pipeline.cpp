@@ -330,12 +330,7 @@ void pipe_cycle_EX(Pipeline *p)
             p->pipe_latch[EX_LATCH][i].valid = false;
        }
        #ifdef DEBUG
-            if(p->pipe_latch[EX_LATCH][i].valid){
-                printf("Moving I%lu from ID to EX...\n", p->pipe_latch[MA_LATCH][i].op_id);
-            }
-            else{
-                printf("Moving NOP from ID to EX...\n");
-            }
+            printf("Moving I%lu from ID to EX...\n", p->pipe_latch[EX_LATCH][i].op_id);
         #endif
     }
 }
@@ -458,12 +453,7 @@ void pipe_cycle_ID(Pipeline *p)
           //      printf("tracked ID: %lu\n\n", track_id[i]);
         //#endif
         #ifdef DEBUG
-            if(p->pipe_latch[ID_LATCH][i].valid){
-                printf("Moving I%lu from IF to ID...\n", p->pipe_latch[ID_LATCH][i].op_id);
-            }
-            else{
-                printf("Moving NOP from IF to ID...\n");
-            }
+            printf("Moving I%lu from IF to ID...\n", p->pipe_latch[ID_LATCH][i].op_id);
         #endif
     }
 }
@@ -497,6 +487,14 @@ void pipe_cycle_IF(Pipeline *p)
         else{
             p->pipe_latch[IF_LATCH][i].stall = true;
         }
+        #ifdef DEBUG
+            if(!p->pipe_latch[ID_LATCH][i].stall){
+                printf("Fetching %lu!\n", p->pipe_latch[IF_LATCH][i].op_id);
+            }
+            else{
+                printf("Stalling P%d's IF because I%lu is stalled in ID!\n",i,p->pipe_latch[ID_LATCH][i].op_id);
+            }
+        #endif
         
     }
 }
