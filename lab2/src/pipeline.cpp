@@ -377,8 +377,12 @@ void pipe_cycle_ID(Pipeline *p)
             }
             else{
                 for (unsigned int j = 0; j < PIPE_WIDTH; j++){
-                    if(p->pipe_latch[ID_LATCH][j].stall && p->pipe_latch[ID_LATCH][i].op_id > p->pipe_latch[ID_LATCH][j].op_id){
-                        p->pipe_latch[ID_LATCH][i].stall = true;
+                    if(p->pipe_latch[ID_LATCH][j].op_id < currInst.op_id && p->pipe_latch[ID_LATCH][j].stall){
+                        for(unsigned int k = 0; k < PIPE_WIDTH;k++){
+                            if(p->pipe_latch[EX_LATCH][k].op_id == track_id[j] || p->pipe_latch[MA_LATCH][k].op_id == track_id[j]){
+                                p->pipe_latch[ID_LATCH][i].stall = true;
+                            }
+                        }
                     }
                     if(p->pipe_latch[MA_LATCH][j].trace_rec.cc_write){
                         if(currInst.trace_rec.cc_read){
@@ -450,7 +454,7 @@ void pipe_cycle_ID(Pipeline *p)
                
         }
         //#ifdef DEBUG
-          //      printf("tracked ID: %lu\n\n", track_id[i]);
+          //      printf("tracked ID: %lu\n", track_id[i]);
         //#endif
         #ifdef DEBUG
             printf("Moving I%lu from IF to ID...\n", p->pipe_latch[ID_LATCH][i].op_id);
@@ -494,6 +498,7 @@ void pipe_cycle_IF(Pipeline *p)
             else{
                 printf("Stalling P%d's IF because I%lu is stalled in ID!\n",i,p->pipe_latch[ID_LATCH][i].op_id);
             }
+            printf("tracked ID: %lu\n", track_id[i]);
         #endif
         
     }
