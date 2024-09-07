@@ -361,36 +361,8 @@ void pipe_cycle_ID(Pipeline *p)
                         }
                         if(p->pipe_latch[MA_LATCH][k].op_id == track_id[j] && !ENABLE_MEM_FWD){
                             p->pipe_latch[ID_LATCH][i].stall = true;
-        if(currInst.stall){
-            p->pipe_latch[ID_LATCH][i].stall = false;
-            for(unsigned int j = 0; j < PIPE_WIDTH; j++){
-                if(p->pipe_latch[ID_LATCH][j].op_id < currInst.op_id && p->pipe_latch[ID_LATCH][j].stall){
-                    for(unsigned int k = 0; k < PIPE_WIDTH;k++){
-                        if(p->pipe_latch[EX_LATCH][k].op_id == track_id[j]){
-                            p->pipe_latch[ID_LATCH][i].stall = true;
-                        }
-                        if(p->pipe_latch[MA_LATCH][k].op_id == track_id[j] && !ENABLE_MEM_FWD){
-                            p->pipe_latch[ID_LATCH][i].stall = true;
                         }
                     }
-                }
-                if(p->pipe_latch[EX_LATCH][j].op_id == track_id[i]){
-                        p->pipe_latch[ID_LATCH][i].stall = true;
-                }
-                if( p->pipe_latch[MA_LATCH][j].op_id == track_id[i] && !ENABLE_MEM_FWD){
-                    p->pipe_latch[ID_LATCH][i].stall = true;
-                }
-            }
-        }
-        else{
-            for (unsigned int j = 0; j < PIPE_WIDTH; j++){
-                if(p->pipe_latch[ID_LATCH][j].op_id < currInst.op_id && p->pipe_latch[ID_LATCH][j].stall){
-                    for(unsigned int k = 0; k < PIPE_WIDTH;k++){
-                        if(p->pipe_latch[EX_LATCH][k].op_id == track_id[j]){
-                            p->pipe_latch[ID_LATCH][i].stall = true;
-                        }
-                        if(p->pipe_latch[MA_LATCH][k].op_id == track_id[j] && !ENABLE_MEM_FWD){
-                            p->pipe_latch[ID_LATCH][i].stall = true;
                 }
                 if(p->pipe_latch[EX_LATCH][j].op_id == track_id[i]){
                         p->pipe_latch[ID_LATCH][i].stall = true;
