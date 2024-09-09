@@ -572,6 +572,7 @@ void pipe_check_bpred(Pipeline *p, PipelineLatch *fetch_op)
 {
     // TODO: For a conditional branch instruction, get a prediction from the
     // branch predictor.
+    
 
     // TODO: If the branch predictor mispredicted, mark the fetch_op
     // accordingly.
