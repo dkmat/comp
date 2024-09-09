@@ -362,8 +362,10 @@ void pipe_cycle_ID(Pipeline *p)
                             if(!ENABLE_EXE_FWD){
                                 p->pipe_latch[ID_LATCH][i].stall = true;
                             }
-                            else if(p->pipe_latch[EX_LATCH][k].trace_rec.op_type == OP_LD || p->pipe_latch[EX_LATCH][k].trace_rec.op_type == OP_ST){
-                                p->pipe_latch[ID_LATCH][i].stall = true;
+                            else {
+                                if(p->pipe_latch[EX_LATCH][k].trace_rec.op_type == OP_LD){
+                                    p->pipe_latch[ID_LATCH][i].stall = true;
+                                }
                             }
                         }
                         if(p->pipe_latch[MA_LATCH][k].op_id == track_id[j] && !ENABLE_MEM_FWD){
@@ -378,8 +380,10 @@ void pipe_cycle_ID(Pipeline *p)
                     if(!ENABLE_EXE_FWD){
                         p->pipe_latch[ID_LATCH][i].stall = true;
                     }
-                    else if(p->pipe_latch[EX_LATCH][j].trace_rec.op_type == OP_LD || p->pipe_latch[EX_LATCH][j].trace_rec.op_type == OP_ST){
-                        p->pipe_latch[ID_LATCH][i].stall = true;
+                    else {
+                        if(p->pipe_latch[EX_LATCH][j].trace_rec.op_type == OP_LD ){
+                            p->pipe_latch[ID_LATCH][i].stall = true;
+                        }
                     }
                 }
                 if( p->pipe_latch[MA_LATCH][j].op_id == track_id[i] && !ENABLE_MEM_FWD){
@@ -398,8 +402,10 @@ void pipe_cycle_ID(Pipeline *p)
                             if(!ENABLE_EXE_FWD){
                                 p->pipe_latch[ID_LATCH][i].stall = true;
                             }
-                            else if(p->pipe_latch[EX_LATCH][k].trace_rec.op_type == OP_LD || p->pipe_latch[EX_LATCH][k].trace_rec.op_type == OP_ST){
-                                p->pipe_latch[ID_LATCH][i].stall = true;
+                            else {
+                                if(p->pipe_latch[EX_LATCH][k].trace_rec.op_type == OP_LD){
+                                    p->pipe_latch[ID_LATCH][i].stall = true;
+                                }
                             }
                         }
                         if(p->pipe_latch[MA_LATCH][k].op_id == track_id[j] && !ENABLE_MEM_FWD){
@@ -433,8 +439,11 @@ void pipe_cycle_ID(Pipeline *p)
                             p->pipe_latch[ID_LATCH][i].stall = true;
                             temp_id = p->pipe_latch[EX_LATCH][j].op_id;
                         }
-                        else if(p->pipe_latch[EX_LATCH][j].trace_rec.op_type != OP_ALU){
+                        else {
                             p->pipe_latch[ID_LATCH][i].stall = true;
+                            if(p->pipe_latch[EX_LATCH][j].trace_rec.op_type == OP_ALU && p->pipe_latch[EX_LATCH][j].op_id > track_id[i]){
+                                p->pipe_latch[ID_LATCH][i].stall = false;
+                            }
                             temp_id = p->pipe_latch[EX_LATCH][j].op_id;
                         }
                     }
@@ -442,15 +451,32 @@ void pipe_cycle_ID(Pipeline *p)
                 if(p->pipe_latch[EX_LATCH][j].trace_rec.cc_write && p->pipe_latch[EX_LATCH][j].trace_rec.dest_needed){
                     if((currInst.trace_rec.cc_write || currInst.trace_rec.mem_addr)&& currInst.trace_rec.src1_needed){
                         if(currInst.trace_rec.src1_reg == p->pipe_latch[EX_LATCH][j].trace_rec.dest_reg){
-                            p->pipe_latch[ID_LATCH][i].stall = true;
-                            temp_id = p->pipe_latch[EX_LATCH][j].op_id;
+                            if(!ENABLE_EXE_FWD){
+                                p->pipe_latch[ID_LATCH][i].stall = true;
+                                temp_id = p->pipe_latch[EX_LATCH][j].op_id;
+                            }
+                            else {
+                                p->pipe_latch[ID_LATCH][i].stall = true;
+                                if(p->pipe_latch[EX_LATCH][j].trace_rec.op_type != OP_LD && p->pipe_latch[EX_LATCH][j].op_id > track_id[i]){
+                                    p->pipe_latch[ID_LATCH][i].stall = false;
+                                }
+                                temp_id = p->pipe_latch[EX_LATCH][j].op_id;
+                            }
                         }
                     }
                     if((currInst.trace_rec.cc_write || currInst.trace_rec.mem_addr) && currInst.trace_rec.src2_needed){
                         if(currInst.trace_rec.src2_reg == p->pipe_latch[EX_LATCH][j].trace_rec.dest_reg){
-                            p->pipe_latch[ID_LATCH][i].stall = true;
-                            temp_id = p->pipe_latch[EX_LATCH][j].op_id;
-                            
+                            if(!ENABLE_EXE_FWD){
+                                p->pipe_latch[ID_LATCH][i].stall = true;
+                                temp_id = p->pipe_latch[EX_LATCH][j].op_id;
+                            }
+                            else {
+                                p->pipe_latch[ID_LATCH][i].stall = true;
+                                if(p->pipe_latch[EX_LATCH][j].trace_rec.op_type != OP_LD && p->pipe_latch[EX_LATCH][j].op_id > track_id[i]){
+                                    p->pipe_latch[ID_LATCH][i].stall = false;
+                                }
+                                temp_id = p->pipe_latch[EX_LATCH][j].op_id;
+                            }
                         }
                     }
                 }
