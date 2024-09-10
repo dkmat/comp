@@ -441,7 +441,7 @@ void pipe_cycle_ID(Pipeline *p)
                         }
                         else {
                             p->pipe_latch[ID_LATCH][i].stall = true;
-                            if(p->pipe_latch[EX_LATCH][j].trace_rec.op_type == OP_ALU && p->pipe_latch[EX_LATCH][j].op_id > track_id[i]){
+                            if(p->pipe_latch[EX_LATCH][j].trace_rec.op_type != OP_LD && p->pipe_latch[EX_LATCH][j].op_id > track_id[i]){
                                 p->pipe_latch[ID_LATCH][i].stall = false;
                             }
                             temp_id = p->pipe_latch[EX_LATCH][j].op_id;
@@ -572,7 +572,7 @@ void pipe_check_bpred(Pipeline *p, PipelineLatch *fetch_op)
 {
     // TODO: For a conditional branch instruction, get a prediction from the
     // branch predictor.
-    
+
 
     // TODO: If the branch predictor mispredicted, mark the fetch_op
     // accordingly.
