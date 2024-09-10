@@ -505,9 +505,6 @@ void pipe_cycle_ID(Pipeline *p)
                 if(temp_id > track_id[i]){
                     track_id[i] = temp_id;
                 }
-                // #ifdef DEBUG
-                //     printf("OP Type: %d\n", p->pipe_latch[EX_LATCH][j].trace_rec.op_type);
-                // #endif
             }
         }
         #ifdef DEBUG
@@ -572,7 +569,17 @@ void pipe_check_bpred(Pipeline *p, PipelineLatch *fetch_op)
 {
     // TODO: For a conditional branch instruction, get a prediction from the
     // branch predictor.
-
+    BranchDirection prediction;
+    BranchDirection resolution;
+    uint64_t pc = fetch_op->trace_rec.inst_addr;
+    if(fetch_op->trace_rec.op_type == OP_CBR){
+        prediction = p->b_pred->predict(fetch_op->trace_rec.inst_addr);
+        if(!prediction){
+            fetch_op->is_mispred_cbr = true;
+        }
+        resolution = static_cast<BranchDirection>(fetch_op->trace_rec.br_dir);
+        p->b_pred->update(pc,prediction,resolution);
+    }
 
     // TODO: If the branch predictor mispredicted, mark the fetch_op
     // accordingly.
