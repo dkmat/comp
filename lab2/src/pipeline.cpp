@@ -210,6 +210,7 @@ void pipe_print_state(Pipeline *p)
     }
 }
 std::vector<uint64_t>track_id(PIPE_WIDTH);
+std::vector<uint64_t>last_stall(PIPE_WIDTH);
 /**
  * Simulate one cycle of all stages of a pipeline.
  * 
@@ -269,6 +270,9 @@ void pipe_cycle_WB(Pipeline *p)
     {
         if (p->pipe_latch[MA_LATCH][i].valid)
         {
+            if(p->fetch_cbr_stall && p->pipe_latch[MA_LATCH][i].op_id == p->b_pred->getId()){
+                p->fetch_cbr_stall = false;
+            }
             p->stat_retired_inst++;
 
             if (p->pipe_latch[MA_LATCH][i].op_id >= p->halt_op_id)
@@ -395,7 +399,11 @@ void pipe_cycle_ID(Pipeline *p)
             }
         }
         else{
+            
             for (unsigned int j = 0; j < PIPE_WIDTH; j++){
+                if(!p->pipe_latch[ID_LATCH][i].valid || !p->pipe_latch[ID_LATCH][j].valid){
+                    continue;
+                }
                 if(p->pipe_latch[ID_LATCH][j].op_id < currInst.op_id && p->pipe_latch[ID_LATCH][j].stall){
                     for(unsigned int k = 0; k < PIPE_WIDTH;k++){
                         if(p->pipe_latch[EX_LATCH][k].op_id == track_id[j]){
@@ -504,7 +512,7 @@ void pipe_cycle_ID(Pipeline *p)
                 }
                 if(temp_id > track_id[i]){
                     track_id[i] = temp_id;
-                }
+                } 
             }
         }
         #ifdef DEBUG
@@ -525,23 +533,37 @@ void pipe_cycle_IF(Pipeline *p)
 {
     for (unsigned int i = 0; i < PIPE_WIDTH; i++)
     {
+        
         if(!p->pipe_latch[ID_LATCH][i].stall){
-            // Read an instruction from the trace file.
-            PipelineLatch fetch_op;
-            pipe_get_fetch_op(p, &fetch_op);
+            if(!p->fetch_cbr_stall){
+                // Read an instruction from the trace file.
+                PipelineLatch fetch_op;
+                pipe_get_fetch_op(p, &fetch_op);
 
-            // Handle branch (mis)prediction.
-            if (BPRED_POLICY != BPRED_PERFECT)
-            {
-                pipe_check_bpred(p, &fetch_op);
+                // Handle branch (mis)prediction.
+                if (BPRED_POLICY != BPRED_PERFECT)
+                {
+                    pipe_check_bpred(p, &fetch_op);
+                }
+
+                // Copy the instruction to the IF latch.
+                p->pipe_latch[IF_LATCH][i] = fetch_op;
             }
-
-            // Copy the instruction to the IF latch.
-            p->pipe_latch[IF_LATCH][i] = fetch_op;
+            else{
+                p->pipe_latch[IF_LATCH][i].valid = false;
+            }
         }
         else{
-            p->pipe_latch[IF_LATCH][i].stall = true;
+            if(p->fetch_cbr_stall && p->pipe_latch[ID_LATCH][i].op_id == p->pipe_latch[EX_LATCH][i].op_id){
+                p->pipe_latch[IF_LATCH][i].valid = false;
+                p->pipe_latch[IF_LATCH][i].stall = false;
+                p->pipe_latch[ID_LATCH][i].stall = false;
+            }
+            else{
+                p->pipe_latch[IF_LATCH][i].stall = true;
+            }
         }
+        
         #ifdef DEBUG
             if(!p->pipe_latch[ID_LATCH][i].stall){
                 printf("Fetching %lu!\n", p->pipe_latch[IF_LATCH][i].op_id);
@@ -574,11 +596,13 @@ void pipe_check_bpred(Pipeline *p, PipelineLatch *fetch_op)
     uint64_t pc = fetch_op->trace_rec.inst_addr;
     if(fetch_op->trace_rec.op_type == OP_CBR){
         prediction = p->b_pred->predict(fetch_op->trace_rec.inst_addr);
-        if(!prediction){
-            fetch_op->is_mispred_cbr = true;
-        }
         resolution = static_cast<BranchDirection>(fetch_op->trace_rec.br_dir);
         p->b_pred->update(pc,prediction,resolution);
+        if(prediction != resolution){
+            fetch_op->is_mispred_cbr = true;
+            p->fetch_cbr_stall = true;
+            p->b_pred->setId(fetch_op->op_id);
+        }
     }
 
     // TODO: If the branch predictor mispredicted, mark the fetch_op

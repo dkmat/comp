@@ -19,7 +19,7 @@
 BPred::BPred(BPredPolicy policy)
 {
     // TODO: Initialize member variables here.
-
+    this->policy = policy;
     // As a reminder, you can declare any additional member variables you need
     // in the BPred class in bpred.h and initialize them here.
 }
@@ -36,11 +36,9 @@ BranchDirection BPred::predict(uint64_t pc)
 {
     // TODO: Return a prediction for whether the branch at address pc will be
     // TAKEN or NOT_TAKEN according to this branch predictor's policy.
-
     // Note that you do not have to handle the BPRED_PERFECT policy here; this
     // function will not be called for that policy.
-
-    return TAKEN; // This is just a placeholder.
+    return TAKEN;
 }
 
 
@@ -60,7 +58,10 @@ void BPred::update(uint64_t pc, BranchDirection prediction,
 {
     // TODO: Update the stat_num_branches and stat_num_mispred member variables
     // according to the prediction and resolution of the branch.
-
+    stat_num_branches++;
+    if(prediction != resolution){
+        stat_num_mispred++;
+    }
     // TODO: Update any other internal state you may need to keep track of.
 
     // Note that you do not have to handle the BPRED_PERFECT policy here; this
