@@ -13,7 +13,7 @@
 #define _BPRED_H_
 
 #include <inttypes.h>
-
+#include <vector>
 /**
  * The possible branch prediction policies the simulator can use.
  * 
@@ -49,7 +49,10 @@ class BPred
 private:
     /** The policy this branch predictor uses. */
     BPredPolicy policy;
-    // uint64_t stall_id;
+    uint16_t ghr;
+    std::vector<uint8_t>pht;
+    uint16_t pattern;
+    uint8_t prediction;
 public:
     /** The total number of branches this branch predictor has seen. */
     uint64_t stat_num_branches;
