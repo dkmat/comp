@@ -270,7 +270,7 @@ void pipe_cycle_WB(Pipeline *p)
     {
         if (p->pipe_latch[MA_LATCH][i].valid)
         {
-            if(p->fetch_cbr_stall && p->pipe_latch[MA_LATCH][i].op_id == p->b_pred->getId()){
+            if(p->pipe_latch[MA_LATCH][i].is_mispred_cbr){
                 p->fetch_cbr_stall = false;
             }
             p->stat_retired_inst++;
@@ -393,7 +393,7 @@ void pipe_cycle_ID(Pipeline *p)
                 if( p->pipe_latch[MA_LATCH][j].op_id == track_id[i] && !ENABLE_MEM_FWD){
                     p->pipe_latch[ID_LATCH][i].stall = true;
                 }
-                if(p->pipe_latch[ID_LATCH][j].op_id == track_id[i] && ENABLE_EXE_FWD && ENABLE_MEM_FWD){
+                if(p->pipe_latch[ID_LATCH][j].op_id == track_id[i] && p->pipe_latch[ID_LATCH][j].valid && ENABLE_EXE_FWD && ENABLE_MEM_FWD){
                     p->pipe_latch[ID_LATCH][i].stall = true;
                 }
             }
@@ -554,14 +554,7 @@ void pipe_cycle_IF(Pipeline *p)
             }
         }
         else{
-            if(p->fetch_cbr_stall && p->pipe_latch[ID_LATCH][i].op_id == p->pipe_latch[EX_LATCH][i].op_id){
-                p->pipe_latch[IF_LATCH][i].valid = false;
-                p->pipe_latch[IF_LATCH][i].stall = false;
-                p->pipe_latch[ID_LATCH][i].stall = false;
-            }
-            else{
-                p->pipe_latch[IF_LATCH][i].stall = true;
-            }
+            p->pipe_latch[IF_LATCH][i].stall = true;
         }
         
         #ifdef DEBUG
@@ -601,7 +594,6 @@ void pipe_check_bpred(Pipeline *p, PipelineLatch *fetch_op)
         if(prediction != resolution){
             fetch_op->is_mispred_cbr = true;
             p->fetch_cbr_stall = true;
-            p->b_pred->setId(fetch_op->op_id);
         }
     }
 

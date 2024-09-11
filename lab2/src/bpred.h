@@ -49,19 +49,19 @@ class BPred
 private:
     /** The policy this branch predictor uses. */
     BPredPolicy policy;
-    uint64_t stall_id;
+    // uint64_t stall_id;
 public:
     /** The total number of branches this branch predictor has seen. */
     uint64_t stat_num_branches;
     /** The number of branches this branch predictor has mispredicted. */
     uint64_t stat_num_mispred;
 
-    inline uint64_t getId(){
-        return stall_id;
-    }
-    inline void setId(uint64_t op_id){
-        this->stall_id = op_id;
-    }
+    // inline uint64_t getId(){
+    //     return stall_id;
+    // }
+    // inline void setId(uint64_t op_id){
+    //     this->stall_id = op_id;
+    // }
     /**
      * Construct a branch predictor with the given policy.
      * 
