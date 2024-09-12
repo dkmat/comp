@@ -380,7 +380,7 @@ void pipe_cycle_ID(Pipeline *p)
                         }
                     }
                 }
-                if(p->pipe_latch[EX_LATCH][j].op_id == track_id[i]){
+                if(p->pipe_latch[EX_LATCH][j].op_id == track_id[i] && p->pipe_latch[EX_LATCH][j].valid){
                     if(!ENABLE_EXE_FWD){
                         p->pipe_latch[ID_LATCH][i].stall = true;
                     }
@@ -533,7 +533,6 @@ void pipe_cycle_IF(Pipeline *p)
 {
     for (unsigned int i = 0; i < PIPE_WIDTH; i++)
     {
-        
         if(!p->pipe_latch[ID_LATCH][i].stall){
             if(!p->fetch_cbr_stall){
                 // Read an instruction from the trace file.
@@ -564,7 +563,7 @@ void pipe_cycle_IF(Pipeline *p)
             else{
                 printf("Stalling P%d's IF because I%lu is stalled in ID!\n",i,p->pipe_latch[ID_LATCH][i].op_id);
             }
-            //printf("tracked ID: %lu\n", track_id[i]);
+            printf("tracked ID: %lu\n", track_id[i]);
         #endif
         
     }
