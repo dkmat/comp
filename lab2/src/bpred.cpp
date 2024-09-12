@@ -21,7 +21,7 @@ BPred::BPred(BPredPolicy policy)
     // TODO: Initialize member variables here.
     this->policy = policy;
     pht.resize(4096,2);
-    ghr = 4095;
+    ghr = 0;
     pattern = 0;
     // As a reminder, you can declare any additional member variables you need
     // in the BPred class in bpred.h and initialize them here.
@@ -46,14 +46,14 @@ BranchDirection BPred::predict(uint64_t pc)
     }
     else {
         uint16_t pc_lower = pc & 0xFFF;
-        ghr = ghr & 0xFFF;
-        pattern = pc_lower ^ ghr;
+        uint16_t ghr_lower = ghr & 0xFFF;
+        pattern = pc_lower ^ ghr_lower;
         prediction = pht[pattern];
-        if(prediction == 0 || prediction == 1){
-            return NOT_TAKEN;
+        if(prediction == 2 || prediction == 3){
+            return TAKEN;
         }
         else{
-            return TAKEN;
+            return NOT_TAKEN;
         }
     }
    
@@ -79,20 +79,21 @@ void BPred::update(uint64_t pc, BranchDirection prediction,
     stat_num_branches++;
     if(prediction != resolution){
         stat_num_mispred++;
-        if(resolution){
-            if(pht[pattern] != 3){
-                pht[pattern]++;
-            }
+        
+    }
+    if(resolution){
+        if(pht[pattern] != 3){
+            pht[pattern]++;
         }
-        else{
-            if(pht[pattern] != 0){
-                pht[pattern]--;
-            }
+    }
+    else{
+        if(pht[pattern] != 0){
+            pht[pattern]--;
         }
     }
     ghr = ghr << 1;
     if(resolution){
-        ghr |= 1;
+        ghr |= 0x1;
     }
     // TODO: Update any other internal state you may need to keep track of.
 

@@ -563,7 +563,7 @@ void pipe_cycle_IF(Pipeline *p)
             else{
                 printf("Stalling P%d's IF because I%lu is stalled in ID!\n",i,p->pipe_latch[ID_LATCH][i].op_id);
             }
-            printf("tracked ID: %lu\n", track_id[i]);
+            //printf("tracked ID: %lu\n", track_id[i]);
         #endif
         
     }
