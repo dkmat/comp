@@ -101,6 +101,7 @@ bool rob_check_space(ROB *rob)
 {
     // TODO: Return true if there is space to insert another instruction into
     //       the ROB, false otherwise.
+    return rob->head_ptr < NUM_ROB_ENTRIES;
 }
 
 /**
@@ -119,6 +120,21 @@ int rob_insert(ROB *rob, InstInfo inst)
     // TODO: Create an entry containing this instruction at the tail of the
     //       ROB. Set all the fields on the entry to their correct values.
     // TODO: Advance the tail pointer, wrapping around if needed.
+    if(rob_check_space(rob))
+    {
+        int index = rob->tail_ptr;
+        rob->entries[rob->tail_ptr].inst = inst;
+        rob->entries[rob->tail_ptr].valid = true;
+        if(++rob->tail_ptr == NUM_ROB_ENTRIES)
+        {
+            rob->tail_ptr = 0;
+        }
+        return index;
+    }
+    else
+    {
+        return -1;
+    }
 }
 
 /**
