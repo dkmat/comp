@@ -101,7 +101,15 @@ bool rob_check_space(ROB *rob)
 {
     // TODO: Return true if there is space to insert another instruction into
     //       the ROB, false otherwise.
-    return rob->head_ptr < NUM_ROB_ENTRIES;
+    if(rob->head_ptr < NUM_ROB_ENTRIES)
+    {
+        return true;
+    }
+    else if(rob->tail_ptr != 0)
+    {
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -154,6 +162,7 @@ void rob_mark_exec(ROB *rob, InstInfo inst)
     //       (Hint: Is there an easy way to tell at what index the given
     //       instruction is located in the ROB?)
     // TODO: Update that entry.
+    rob->entries[inst.dr_tag].exec = 1;
 }
 
 /**
@@ -174,6 +183,7 @@ void rob_mark_ready(ROB *rob, InstInfo inst)
     //       (Hint: Is there an easy way to tell at what index the given
     //       instruction is located in the ROB?)
     // TODO: Update that entry.
+    rob->entries[inst.dr_tag].ready = 1;
 }
 
 /**
@@ -192,6 +202,7 @@ bool rob_check_ready(ROB *rob, int tag)
 {
     // TODO: Return true if the instruction at this tag (ID/index) is valid and
     //       has its output ready (i.e., is ready to commit), false otherwise.
+    return rob->entries[tag].valid && rob->entries[tag].ready;
 }
 
 /**
@@ -208,6 +219,7 @@ bool rob_check_head(ROB *rob)
 {
     // TODO: Return true if the instruction at the head of the ROB is valid and
     //       ready to commit, false otherwise.
+    return rob->entries[rob->head_ptr].valid && rob->entries[rob->head_ptr].ready;
 }
 
 /**
