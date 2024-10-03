@@ -244,6 +244,23 @@ void rob_wakeup(ROB *rob, int tag)
 {
     // TODO: Update the relevant src1 ready bits throughout the ROB.
     // TODO: Update the relevant src2 ready bits throughout the ROB.
+    for(int i = 0; i < NUM_ROB_ENTRIES; i++)
+    {
+        if(!rob->entries[i].inst.src1_ready)
+        {
+            if(rob->entries[i].inst.src1_tag == tag)
+            {
+                rob->entries[i].inst.src1_ready = 1;
+            }
+        }
+        if(!rob->entries[i].inst.src2_ready)
+        {
+            if(rob->entries[i].inst.src2_tag == tag)
+            {
+                rob->entries[i].inst.src2_ready = 1;
+            }
+        }
+    }
 }
 
 /**
@@ -261,4 +278,14 @@ InstInfo rob_remove_head(ROB *rob)
     // TODO: Remove that entry.
     // TODO: Advance the head pointer, wrapping around if needed.
     // TODO: Return the instruction in the removed entry.
+    InstInfo prevHead = rob->entries[rob->head_ptr].inst;;
+    if(rob->entries[rob->head_ptr].ready)
+    {
+        rob->entries[rob->head_ptr].valid = 0;
+        if(++rob->head_ptr == NUM_ROB_ENTRIES)
+        {
+            rob->head_ptr = 0;
+        }
+    }
+    return prevHead;
 }
