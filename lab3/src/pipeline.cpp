@@ -432,7 +432,7 @@ void pipe_cycle_exe(Pipeline *p)
 void pipe_cycle_issue(Pipeline *p)
 {
     // TODO: For each valid instruction from the ID stage:
-
+    
     // TODO: If there is space in the ROB, insert the instruction.
     // TODO: Set the entry invalid in the previous latch when you do so.
 
@@ -447,6 +447,57 @@ void pipe_cycle_issue(Pipeline *p)
     // TODO: Set the tag for this instruction's destination register.
     // TODO: If this instruction writes to a register, update the RAT
     //       accordingly.
+    for (unsigned int i = 0; i < PIPE_WIDTH; i++)
+    {
+        int rob_id;
+        InstInfo currInst;
+        if(p->ID_latch[i].valid)
+        {
+            currInst = p->ID_latch[i].inst;
+            rob_id = rob_insert(p->rob, currInst);
+            if(rob_id >= 0)
+            {
+                p->ID_latch[i].valid = 0;
+                if(currInst.src1_reg >=0)
+                {
+                    if(rat_get_remap(p->rat, currInst.src1_reg) < 0)
+                    {
+                        currInst.src1_ready = 1;
+                    }
+                    else
+                    {
+                        currInst.src1_tag = rat_get_remap(p->rat, currInst.src1_reg);
+                        if(rob_check_ready(p->rob, currInst.src1_tag))
+                        {
+                            currInst.src1_ready = 1;
+                        }
+                    }
+                }
+                if(currInst.src2_reg >= 0)
+                {
+                    if(rat_get_remap(p->rat, currInst.src2_reg) < 0)
+                    {
+                        currInst.src2_ready = 1;
+                    }
+                    else
+                    {
+                        currInst.src2_tag = rat_get_remap(p->rat, currInst.src2_reg);
+                        if(rob_check_ready(p->rob, currInst.src2_tag))
+                        {
+                            currInst.src2_ready = 1;
+                        }
+                    }
+                }
+                if(currInst.dest_reg >= 0)
+                {
+                    rat_set_remap(p->rat, currInst.dest_reg, rob_id);
+                }
+                currInst.dr_tag = rob_id;
+                
+                p->ID_latch[i].inst = currInst;
+            }
+        }
+    }
 }
 
 /**
@@ -473,6 +524,52 @@ void pipe_cycle_schedule(Pipeline *p)
         // TODO: Otherwise, mark it as executing in the ROB and send it to the
         //       next latch.
         // TODO: Repeat for each lane of the pipeline.
+        bool stop = false;
+        bool wrap;
+        int oldest = p->rob->head_ptr;
+        wrap = p->rob->tail_ptr < p->rob->head_ptr;
+        for(int i = 0; i < PIPE_WIDTH; i++)
+        {
+            while(!stop)
+            {
+                if(p->rob->entries[oldest].valid && !p->rob->entries[oldest].exec)
+                {
+                    if(p->rob->entries[oldest].inst.src1_ready && p->rob->entries[oldest].inst.src2_ready)
+                    {
+                        p->rob->entries[oldest].exec = 1;
+                        p->SC_latch[i].inst = p->rob->entries[oldest].inst;
+                        break;
+                    }
+                    else
+                    {
+                        stop = true;
+                    }
+                }
+                else
+                {
+                    oldest++;
+                    if(wrap)
+                    {
+                        if(oldest == NUM_ROB_ENTRIES)
+                        {
+                            oldest = 0;
+                        }
+                        else if(oldest == p->rob->tail_ptr)
+                        {
+                            stop = true;
+                        }
+                    }
+                    else
+                    {
+                        if(oldest == p->rob->tail_ptr)
+                        {
+                            stop = true;
+                        }
+                    }
+                }
+            }
+            
+        }
     }
 
     if (SCHED_POLICY == SCHED_OUT_OF_ORDER)
