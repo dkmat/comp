@@ -525,10 +525,9 @@ void pipe_cycle_schedule(Pipeline *p)
         //       next latch.
         // TODO: Repeat for each lane of the pipeline.
         bool stop = false;
-        bool wrap;
+        bool wrap= p->rob->tail_ptr < p->rob->head_ptr;
         int oldest = p->rob->head_ptr;
-        wrap = p->rob->tail_ptr < p->rob->head_ptr;
-        for(int i = 0; i < PIPE_WIDTH; i++)
+        for(unsigned int i = 0; i < PIPE_WIDTH; i++)
         {
             while(!stop)
             {
@@ -536,7 +535,7 @@ void pipe_cycle_schedule(Pipeline *p)
                 {
                     if(p->rob->entries[oldest].inst.src1_ready && p->rob->entries[oldest].inst.src2_ready)
                     {
-                        p->rob->entries[oldest].exec = 1;
+                        rob_mark_exec(p->rob, p->rob->entries[oldest].inst);
                         p->SC_latch[i].inst = p->rob->entries[oldest].inst;
                         break;
                     }
@@ -597,7 +596,15 @@ void pipe_cycle_writeback(Pipeline *p)
     // TODO: Broadcast the result to all ROB entries.
     // TODO: Update the ROB: mark the instruction ready to commit.
     // TODO: Invalidate the instruction in the previous latch.
-
+    for (unsigned int i = 0; i < MAX_WRITEBACKS; i++)
+    {
+        if(p->EX_latch[i].valid)
+        {
+            rob_wakeup(p->rob, p->EX_latch[i].inst.dr_tag);
+            rob_mark_ready(p->rob, p->EX_latch[i].inst);
+            p->EX_latch[i].valid = 0;
+        }
+    }
     // Remember: how many instructions can the EX stage send to the WB stage
     // in one cycle?
 }
@@ -619,16 +626,27 @@ void pipe_cycle_commit(Pipeline *p)
     // TODO: Commit that instruction.
     // TODO: If a RAT mapping exists and is still relevant, update the RAT.
     // TODO: Repeat for each lane of the pipeline.
-
+    for (unsigned int i = 0; i < PIPE_WIDTH; i++)
+    {
+        if(rob_check_head(p->rob))
+        {
+            InstInfo instruction = rob_remove_head(p->rob);
+            pipe_commit_inst(p, instruction);
+            if(instruction.dr_tag == rat_get_remap(p->rat, instruction.dest_reg))
+            {
+                rat_reset_entry(p->rat, instruction.dest_reg);
+            }
+        }
+    }
     // The following code is DUMMY CODE to ensure that the base code compiles
     // and that the simulation terminates. Replace it with a correct
     // implementation!
-    for (unsigned int i = 0; i < PIPE_WIDTH; i++)
-    {
-        if (p->FE_latch[i].valid)
-        {
-            pipe_commit_inst(p, p->FE_latch[i].inst);
-            p->FE_latch[i].valid = false;
-        }
-    }
+    // for (unsigned int i = 0; i < PIPE_WIDTH; i++)
+    // {
+    //     if (p->FE_latch[i].valid)
+    //     {
+    //         pipe_commit_inst(p, p->FE_latch[i].inst);
+    //         p->FE_latch[i].valid = false;
+    //     }
+    // }
 }
