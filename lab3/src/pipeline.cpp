@@ -527,50 +527,12 @@ void pipe_cycle_schedule(Pipeline *p)
         bool stop = false;
         bool wrap= p->rob->tail_ptr < p->rob->head_ptr;
         int oldest = p->rob->head_ptr;
+        // printf("head: %d tail: %d\n", p->rob->head_ptr, p->rob->tail_ptr);
         for(unsigned int i = 0; i < PIPE_WIDTH; i++)
         {
-            while(!stop)
-            {
-                if(p->rob->entries[oldest].valid && !p->rob->entries[oldest].exec)
-                {
-                    if(p->rob->entries[oldest].inst.src1_ready && p->rob->entries[oldest].inst.src2_ready)
-                    {
-                        rob_mark_exec(p->rob, p->rob->entries[oldest].inst);
-                        p->SC_latch[i].inst = p->rob->entries[oldest].inst;
-                        break;
-                    }
-                    else
-                    {
-                        stop = true;
-                    }
-                }
-                else
-                {
-                    oldest++;
-                    if(wrap)
-                    {
-                        if(oldest == static_cast<int>(NUM_ROB_ENTRIES))
-                        {
-                            oldest = 0;
-                        }
-                        else if(oldest == p->rob->tail_ptr)
-                        {
-                            stop = true;
-                        }
-                    }
-                    else
-                    {
-                        if(oldest == p->rob->tail_ptr)
-                        {
-                            stop = true;
-                        }
-                    }
-                }
-            }
             
         }
     }
-
     if (SCHED_POLICY == SCHED_OUT_OF_ORDER)
     {
         // Out-of-order scheduling:
@@ -638,6 +600,7 @@ void pipe_cycle_commit(Pipeline *p)
             }
         }
     }
+    
     // The following code is DUMMY CODE to ensure that the base code compiles
     // and that the simulation terminates. Replace it with a correct
     // implementation!
