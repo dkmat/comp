@@ -549,7 +549,7 @@ void pipe_cycle_schedule(Pipeline *p)
                     oldest++;
                     if(wrap)
                     {
-                        if(oldest == NUM_ROB_ENTRIES)
+                        if(oldest == static_cast<int>(NUM_ROB_ENTRIES))
                         {
                             oldest = 0;
                         }

@@ -101,15 +101,7 @@ bool rob_check_space(ROB *rob)
 {
     // TODO: Return true if there is space to insert another instruction into
     //       the ROB, false otherwise.
-    if(rob->head_ptr < NUM_ROB_ENTRIES)
-    {
-        return true;
-    }
-    else if(rob->tail_ptr != 0)
-    {
-        return true;
-    }
-    return false;
+    return rob->tail_ptr < static_cast<int>(NUM_ROB_ENTRIES) && rob->tail_ptr != rob->head_ptr;
 }
 
 /**
@@ -133,7 +125,7 @@ int rob_insert(ROB *rob, InstInfo inst)
         int index = rob->tail_ptr;
         rob->entries[rob->tail_ptr].inst = inst;
         rob->entries[rob->tail_ptr].valid = true;
-        if(++rob->tail_ptr == NUM_ROB_ENTRIES)
+        if(++rob->tail_ptr == static_cast<int>(NUM_ROB_ENTRIES))
         {
             rob->tail_ptr = 0;
         }
@@ -244,7 +236,7 @@ void rob_wakeup(ROB *rob, int tag)
 {
     // TODO: Update the relevant src1 ready bits throughout the ROB.
     // TODO: Update the relevant src2 ready bits throughout the ROB.
-    for(int i = 0; i < NUM_ROB_ENTRIES; i++)
+    for(unsigned int i = 0; i < NUM_ROB_ENTRIES; i++)
     {
         if(!rob->entries[i].inst.src1_ready)
         {
@@ -282,7 +274,7 @@ InstInfo rob_remove_head(ROB *rob)
     if(rob->entries[rob->head_ptr].ready)
     {
         rob->entries[rob->head_ptr].valid = 0;
-        if(++rob->head_ptr == NUM_ROB_ENTRIES)
+        if(++rob->head_ptr == static_cast<int>(NUM_ROB_ENTRIES))
         {
             rob->head_ptr = 0;
         }
