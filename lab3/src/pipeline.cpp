@@ -494,7 +494,7 @@ void pipe_cycle_issue(Pipeline *p)
                 }
                 currInst.dr_tag = rob_id;
                 
-                p->ID_latch[i].inst = currInst;
+                p->rob->entries[rob_id].inst = currInst;
             }
         }
     }
@@ -530,6 +530,36 @@ void pipe_cycle_schedule(Pipeline *p)
         // printf("head: %d tail: %d\n", p->rob->head_ptr, p->rob->tail_ptr);
         for(unsigned int i = 0; i < PIPE_WIDTH; i++)
         {
+            while(!stop)
+            {
+                if(oldest == NUM_ROB_ENTRIES && !wrap)
+                {
+                    stop = true;
+                }
+                else if(p->rob->entries[oldest].valid && !p->rob->entries[oldest].exec)
+                {
+                    if(p->rob->entries[oldest].inst.src1_reg >= 0 && p->rob->entries[oldest].inst.src1_ready < 0)
+                    {
+                        stop = true;
+                    }
+                    else if(p->rob->entries[oldest].inst.src2_reg >= 0 && p->rob->entries[oldest].inst.src2_ready < 0)
+                    {
+                        stop = true;
+                    }
+                }
+                else
+                {
+                    if(oldest >= p->rob->tail_ptr && !wrap)
+                    {
+                        stop = true;
+                    }
+                    else if(oldest == NUM_ROB_ENTRIES && wrap)
+                    {
+                        oldest = 0;
+                    }
+                    oldest++;
+                }
+            }
             
         }
     }
