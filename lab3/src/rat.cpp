@@ -92,6 +92,7 @@ void rat_set_remap(RAT *rat, int arf_id, int prf_id)
 {
     // TODO: Access the RAT entry at the correct index.
     // TODO: Set the correct values on that entry.
+    rat->entries[arf_id].valid = 1;
     rat->entries[arf_id].prf_id = prf_id;
 }
 

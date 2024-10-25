@@ -454,6 +454,14 @@ void pipe_cycle_issue(Pipeline *p)
         if(p->ID_latch[i].valid)
         {
             currInst = p->ID_latch[i].inst;
+            if(currInst.src1_reg < 0)
+            {
+                currInst.src1_ready = 1;
+            }
+            if(currInst.src2_reg < 0)
+            {
+                currInst.src2_ready = 1;
+            }
             rob_id = rob_insert(p->rob, currInst);
             if(rob_id >= 0)
             {
@@ -524,40 +532,32 @@ void pipe_cycle_schedule(Pipeline *p)
         // TODO: Otherwise, mark it as executing in the ROB and send it to the
         //       next latch.
         // TODO: Repeat for each lane of the pipeline.
-        bool stop = false;
         bool wrap= p->rob->tail_ptr < p->rob->head_ptr;
         int oldest = p->rob->head_ptr;
         // printf("head: %d tail: %d\n", p->rob->head_ptr, p->rob->tail_ptr);
         for(unsigned int i = 0; i < PIPE_WIDTH; i++)
         {
-            while(!stop)
+            while((oldest < p->rob->tail_ptr && !wrap) || (oldest != p->rob->tail_ptr && wrap))
             {
-                if(oldest == NUM_ROB_ENTRIES && !wrap)
+                
+                if(p->rob->entries[oldest].valid && !p->rob->entries[oldest].exec)
                 {
-                    stop = true;
+                    if(!p->rob->entries[oldest].inst.src1_ready || !p->rob->entries[oldest].inst.src2_ready)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        rob_mark_exec(p->rob, p->rob->entries[oldest].inst);
+                        p->SC_latch[i].valid = 1;
+                        p->SC_latch[i].inst = p->rob->entries[oldest].inst;
+                        break;
+                    }
                 }
-                else if(p->rob->entries[oldest].valid && !p->rob->entries[oldest].exec)
+                oldest++;
+                if(oldest == static_cast<int>(NUM_ROB_ENTRIES) && wrap)
                 {
-                    if(p->rob->entries[oldest].inst.src1_reg >= 0 && p->rob->entries[oldest].inst.src1_ready < 0)
-                    {
-                        stop = true;
-                    }
-                    else if(p->rob->entries[oldest].inst.src2_reg >= 0 && p->rob->entries[oldest].inst.src2_ready < 0)
-                    {
-                        stop = true;
-                    }
-                }
-                else
-                {
-                    if(oldest >= p->rob->tail_ptr && !wrap)
-                    {
-                        stop = true;
-                    }
-                    else if(oldest == NUM_ROB_ENTRIES && wrap)
-                    {
-                        oldest = 0;
-                    }
-                    oldest++;
+                    oldest = 0;
                 }
             }
             
@@ -570,6 +570,29 @@ void pipe_cycle_schedule(Pipeline *p)
         //       operands ready but is not already executing.
         // TODO: Mark it as executing in the ROB and send it to the next latch.
         // TODO: Repeat for each lane of the pipeline.
+        bool wrap= p->rob->tail_ptr < p->rob->head_ptr;
+        int oldest = p->rob->head_ptr;
+        for(unsigned int i = 0; i < PIPE_WIDTH; i++)
+        {
+            while((oldest < p->rob->tail_ptr && !wrap) || (oldest != p->rob->tail_ptr && wrap))
+            {
+                if(p->rob->entries[oldest].valid && !p->rob->entries[oldest].exec)
+                {
+                    if(p->rob->entries[oldest].inst.src1_ready && p->rob->entries[oldest].inst.src2_ready)
+                    {
+                        rob_mark_exec(p->rob, p->rob->entries[oldest].inst);
+                        p->SC_latch[i].valid = 1;
+                        p->SC_latch[i].inst = p->rob->entries[oldest].inst;
+                        break;
+                    }
+                }
+                oldest++;
+                if(oldest == static_cast<int>(NUM_ROB_ENTRIES) && wrap)
+                {
+                    oldest = 0;
+                }
+            }
+        }
     }
 }
 
@@ -624,7 +647,7 @@ void pipe_cycle_commit(Pipeline *p)
         {
             InstInfo instruction = rob_remove_head(p->rob);
             pipe_commit_inst(p, instruction);
-            if(instruction.dr_tag == rat_get_remap(p->rat, instruction.dest_reg))
+            if(rat_get_remap(p->rat, instruction.dest_reg) == instruction.dr_tag)
             {
                 rat_reset_entry(p->rat, instruction.dest_reg);
             }

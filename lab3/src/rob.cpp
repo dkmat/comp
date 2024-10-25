@@ -101,7 +101,15 @@ bool rob_check_space(ROB *rob)
 {
     // TODO: Return true if there is space to insert another instruction into
     //       the ROB, false otherwise.
-    return rob->tail_ptr < static_cast<int>(NUM_ROB_ENTRIES);
+    if(rob->tail_ptr == static_cast<int>(NUM_ROB_ENTRIES) - 1 && rob->head_ptr == 0)
+    {
+        return false;
+    }
+    if(rob->tail_ptr + 1 == rob->head_ptr)
+    {
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -238,20 +246,24 @@ void rob_wakeup(ROB *rob, int tag)
     // TODO: Update the relevant src2 ready bits throughout the ROB.
     for(unsigned int i = 0; i < NUM_ROB_ENTRIES; i++)
     {
-        if(!rob->entries[i].inst.src1_ready)
+        if(rob->entries[i].valid)
         {
-            if(rob->entries[i].inst.src1_tag == tag)
+            if(!rob->entries[i].inst.src1_ready)
             {
-                rob->entries[i].inst.src1_ready = 1;
+                if(rob->entries[i].inst.src1_tag == tag)
+                {
+                    rob->entries[i].inst.src1_ready = 1;
+                }
+            }
+            if(!rob->entries[i].inst.src2_ready)
+            {
+                if(rob->entries[i].inst.src2_tag == tag)
+                {
+                    rob->entries[i].inst.src2_ready = 1;
+                }
             }
         }
-        if(!rob->entries[i].inst.src2_ready)
-        {
-            if(rob->entries[i].inst.src2_tag == tag)
-            {
-                rob->entries[i].inst.src2_ready = 1;
-            }
-        }
+        
     }
 }
 
@@ -270,10 +282,12 @@ InstInfo rob_remove_head(ROB *rob)
     // TODO: Remove that entry.
     // TODO: Advance the head pointer, wrapping around if needed.
     // TODO: Return the instruction in the removed entry.
-    InstInfo prevHead = rob->entries[rob->head_ptr].inst;;
-    if(rob->entries[rob->head_ptr].ready)
+    InstInfo prevHead = rob->entries[rob->head_ptr].inst;
+    if(rob_check_head(rob))
     {
         rob->entries[rob->head_ptr].valid = 0;
+        rob->entries[rob->head_ptr].exec = 0;
+        rob->entries[rob->head_ptr].ready = 0;
         if(++rob->head_ptr == static_cast<int>(NUM_ROB_ENTRIES))
         {
             rob->head_ptr = 0;
