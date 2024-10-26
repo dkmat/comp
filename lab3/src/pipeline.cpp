@@ -653,16 +653,4 @@ void pipe_cycle_commit(Pipeline *p)
             }
         }
     }
-    
-    // The following code is DUMMY CODE to ensure that the base code compiles
-    // and that the simulation terminates. Replace it with a correct
-    // implementation!
-    // for (unsigned int i = 0; i < PIPE_WIDTH; i++)
-    // {
-    //     if (p->FE_latch[i].valid)
-    //     {
-    //         pipe_commit_inst(p, p->FE_latch[i].inst);
-    //         p->FE_latch[i].valid = false;
-    //     }
-    // }
 }
