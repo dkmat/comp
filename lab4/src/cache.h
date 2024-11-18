@@ -31,13 +31,32 @@
 
 // TODO: Define any other data structures you need here.
 // Refer to Appendix A for details on data structures you will need here.
+typedef struct CacheLine
+{
+    bool valid;
+    bool dirty;
+    uint64_t tag;
+    int coreId;
+    uint64_t accessTime;
+} CacheLine;
 
+typedef struct CacheSet
+{
+    CacheLine *cacheLines;
+} CacheSet;
 /** A single cache module. */
 typedef struct Cache
 {
     // TODO: Define any other fields you need here.
     // Refer to Appendix A for details on other fields you will need here.
-
+    CacheSet *cacheSets;
+    uint64_t sets;
+    uint64_t ways;
+    int replacementPolicy;
+    uint64_t index_bits;
+    uint64_t index_mask;
+    uint64_t tag_mask;
+    CacheLine lastLine;
     /**
      * The total number of times this cache was accessed for a read.
      * You should initialize this to 0 and update it for every read!

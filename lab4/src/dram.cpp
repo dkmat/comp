@@ -79,6 +79,7 @@ DRAM *dram_new()
 {
     // TODO: Allocate memory to the data structures and initialize the required
     //       fields. (You might want to use calloc() for this.)
+    return 0;
 }
 
 /**
@@ -103,6 +104,7 @@ uint64_t dram_access(DRAM *dram, uint64_t line_addr, bool is_dram_write)
     // TODO: Update the appropriate DRAM statistics.
     // TODO: Call the dram_access_mode_CDEF() function as needed.
     // TODO: Return the delay in cycles incurred by this DRAM access.
+    return 0;
 }
 
 /**
@@ -129,6 +131,7 @@ uint64_t dram_access_mode_CDEF(DRAM *dram, uint64_t line_addr,
     // row buffers in consecutive rows.
     // TODO: Use this function to track open rows.
     // TODO: Compute the delay based on row buffer hit/miss/empty.
+    return 0;
 }
 
 /**
