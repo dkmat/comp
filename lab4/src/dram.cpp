@@ -84,8 +84,32 @@ DRAM *dram_new()
     #endif
     DRAM *newDram = (DRAM*)calloc(1, sizeof(DRAM));
     newDram->RowbufEntries = (RowBuffer*)calloc(NUM_BANKS, sizeof(RowBuffer));
-    newDram->RowbufEntries->rowId = -1;
-    newDram->RowbufEntries->valid = false;
+    for(unsigned int i = 0; i < NUM_BANKS; i++)
+    {
+        newDram->RowbufEntries[i].rowId = -1;
+        newDram->RowbufEntries[i].valid = false;
+    }
+    uint64_t num = ROW_BUFFER_SIZE / CACHE_LINESIZE;
+    int column_bits = 0;
+    while(num >>= 1)
+    {
+        column_bits++;
+    }
+    num = NUM_BANKS;
+    int bank_bits = 0;
+    while(num >>=1)
+    {
+        bank_bits++;
+    }
+    int row_bits = 32 - bank_bits - column_bits;
+    uint64_t bank_mask = (1ULL << bank_bits) - 1;
+    bank_mask <<= column_bits;
+    uint64_t row_mask = (1ULL << row_bits) - 1;
+    row_mask <<= (bank_bits + column_bits);
+    newDram->column_bits = column_bits;
+    newDram->bank_bits = bank_bits;
+    newDram->bank_mask = bank_mask;
+    newDram->row_mask = row_mask;
     newDram->stat_read_access = 0;
     newDram->stat_read_delay = 0;
     newDram->stat_write_access = 0;
@@ -116,7 +140,6 @@ uint64_t dram_access(DRAM *dram, uint64_t line_addr, bool is_dram_write)
     uint64_t delay = DELAY_SIM_MODE_B;
     #ifdef DEBUG
         printf("\tAccessing DRAM! Calculating delay...\n");
-        printf("\t\tDRAM delay: %ld, is_dram_write: %d\n", delay, is_dram_write);
     #endif
     // TODO: Update the appropriate DRAM statistics.
     // TODO: Call the dram_access_mode_CDEF() function as needed.
@@ -135,7 +158,9 @@ uint64_t dram_access(DRAM *dram, uint64_t line_addr, bool is_dram_write)
         dram->stat_read_access++;
         dram->stat_read_delay+= delay;
     }
-    
+    #ifdef DEBUG
+        printf("\t\tDRAM delay: %ld, is_dram_write: %d\n", delay, is_dram_write);
+    #endif
     return delay;
 }
 
@@ -163,8 +188,70 @@ uint64_t dram_access_mode_CDEF(DRAM *dram, uint64_t line_addr,
     // row buffers in consecutive rows.
     // TODO: Use this function to track open rows.
     // TODO: Compute the delay based on row buffer hit/miss/empty.
+    uint64_t delay = DELAY_BUS;
     
-    return 0;
+    uint64_t bank_index = line_addr & dram->bank_mask;
+    bank_index >>= dram->column_bits;
+    uint64_t rowId = line_addr & dram->row_mask;
+    rowId >>= (dram->bank_bits + dram->column_bits);
+    #ifdef DEBUG
+        printf("\t\tbank index: %ld, row index: %ld\n", bank_index, rowId);
+        if(DRAM_PAGE_POLICY == CLOSE_PAGE)
+        {
+            printf("\t\tUsing CLOSE_PAGE policy!\n");
+        }
+        if(DRAM_PAGE_POLICY == OPEN_PAGE)
+        {
+            printf("\t\tUsing OPEN_PAGE policy!\n");
+            if(dram->RowbufEntries[bank_index].valid)
+            {
+                printf("\t\tValid bank found!\n");
+                if(dram->RowbufEntries[bank_index].rowId == rowId)
+                {
+                    printf("\t\tRow index matched!\n");
+                }
+                else
+                {
+                    printf("\t\tRow did not match! Updating row index.\n");
+                }
+            }
+            else
+            {
+                printf("\t\tBank not valid! Setting to valid and updating row index.\n");
+            }
+        }
+        
+    #endif
+    if(DRAM_PAGE_POLICY == CLOSE_PAGE)
+    {
+        delay = DELAY_SIM_MODE_B;
+    }
+    if(DRAM_PAGE_POLICY == OPEN_PAGE)
+    {
+        if(dram->RowbufEntries[bank_index].valid)
+        {
+            if(is_dram_write)
+            {
+                delay += DELAY_ACT + DELAY_CAS + DELAY_PRE;
+            }
+            else if(rowId == dram->RowbufEntries[bank_index].rowId)
+            {
+                delay += DELAY_CAS;
+            }
+            else
+            {
+                dram->RowbufEntries[bank_index].rowId = rowId;
+                delay += DELAY_ACT + DELAY_CAS + DELAY_PRE;
+            }
+        }
+        else
+        {
+            dram->RowbufEntries[bank_index].valid = true;
+            dram->RowbufEntries[bank_index].rowId = rowId;
+            delay = DELAY_SIM_MODE_B;
+        }
+    }
+    return delay;
 }
 
 /**

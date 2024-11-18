@@ -22,7 +22,7 @@
 typedef struct RowBuffer
 {
     bool valid;
-    int rowId;
+    uint64_t rowId;
 } RowBuffer;
 /** A DRAM module. */
 typedef struct DRAM
@@ -30,6 +30,10 @@ typedef struct DRAM
     // TODO: Define any other fields you need here.
     // Refer to Appendix B for details on other fields you will need here.
     RowBuffer *RowbufEntries;
+    uint64_t bank_mask;
+    uint64_t row_mask;
+    int column_bits;
+    int bank_bits;
     /**
      * The total number of times DRAM was accessed for a read.
      * You should initialize this to 0 and update it for every DRAM read!
