@@ -314,7 +314,7 @@ uint64_t memsys_access_modeBC(MemorySystem *sys, uint64_t line_addr,
     if(dirty)
     {
         write_back = true;
-        memsys_l2_access(sys, line_addr, write_back, core_id);
+        delay += memsys_l2_access(sys, line_addr, write_back, core_id);
     }
     #ifdef DEBUG
         if(dirty)
@@ -361,7 +361,7 @@ uint64_t memsys_l2_access(MemorySystem *sys, uint64_t line_addr,
             if(dirty)
             {
                 is_write = true;
-                dram_access(sys->dram, line_addr, is_write);
+                delay = dram_access(sys->dram, line_addr, is_write);
             }
         }
     }
@@ -375,7 +375,7 @@ uint64_t memsys_l2_access(MemorySystem *sys, uint64_t line_addr,
             if(dirty)
             {
                 is_write = true;
-                dram_access(sys->dram, line_addr, is_write);
+                delay += dram_access(sys->dram, line_addr, is_write);
             }
         }
     }

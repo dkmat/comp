@@ -83,7 +83,7 @@ DRAM *dram_new()
         printf("Creating DRAM!\n");
     #endif
     DRAM *newDram = (DRAM*)calloc(1, sizeof(DRAM));
-    newDram->RowbufEntries = (RowBuffer*)calloc(1, sizeof(RowBuffer));
+    newDram->RowbufEntries = (RowBuffer*)calloc(NUM_BANKS, sizeof(RowBuffer));
     newDram->RowbufEntries->rowId = -1;
     newDram->RowbufEntries->valid = false;
     newDram->stat_read_access = 0;
@@ -121,6 +121,10 @@ uint64_t dram_access(DRAM *dram, uint64_t line_addr, bool is_dram_write)
     // TODO: Update the appropriate DRAM statistics.
     // TODO: Call the dram_access_mode_CDEF() function as needed.
     // TODO: Return the delay in cycles incurred by this DRAM access.
+    if(SIM_MODE != SIM_MODE_B)
+    {
+        delay = dram_access_mode_CDEF(dram, line_addr, is_dram_write);
+    }
     if(is_dram_write)
     {
         dram->stat_write_access++;
@@ -159,6 +163,7 @@ uint64_t dram_access_mode_CDEF(DRAM *dram, uint64_t line_addr,
     // row buffers in consecutive rows.
     // TODO: Use this function to track open rows.
     // TODO: Compute the delay based on row buffer hit/miss/empty.
+    
     return 0;
 }
 
