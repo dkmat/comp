@@ -280,7 +280,7 @@ uint64_t memsys_access_modeBC(MemorySystem *sys, uint64_t line_addr,
         result_l1 = cache_access(sys->icache, line_addr, is_write, core_id);
         if(result_l1 == MISS)
         {
-            delay = memsys_l2_access(sys, line_addr, write_back, core_id);
+            delay += memsys_l2_access(sys, line_addr, write_back, core_id);
             dirty = cache_install(sys->icache, line_addr, is_write, core_id);
         }
     }
@@ -293,7 +293,7 @@ uint64_t memsys_access_modeBC(MemorySystem *sys, uint64_t line_addr,
         result_l1 = cache_access(sys->dcache, line_addr, is_write, core_id);
         if(result_l1 == MISS)
         {
-            delay = memsys_l2_access(sys, line_addr, write_back, core_id);
+            delay += memsys_l2_access(sys, line_addr, write_back, core_id);
             dirty = cache_install(sys->dcache, line_addr, is_write, core_id);
         }
     }
@@ -306,7 +306,7 @@ uint64_t memsys_access_modeBC(MemorySystem *sys, uint64_t line_addr,
         result_l1 = cache_access(sys->dcache, line_addr, is_write, core_id);
         if(result_l1 == MISS)
         {
-            delay = memsys_l2_access(sys, line_addr, write_back, core_id);
+            delay += memsys_l2_access(sys, line_addr, write_back, core_id);
             dirty = cache_install(sys->dcache, line_addr, is_write, core_id);
         }
     }
@@ -314,7 +314,7 @@ uint64_t memsys_access_modeBC(MemorySystem *sys, uint64_t line_addr,
     if(dirty)
     {
         write_back = true;
-        delay += memsys_l2_access(sys, line_addr, write_back, core_id);
+        memsys_l2_access(sys, line_addr, write_back, core_id);
     }
     #ifdef DEBUG
         if(dirty)
@@ -361,7 +361,7 @@ uint64_t memsys_l2_access(MemorySystem *sys, uint64_t line_addr,
             if(dirty)
             {
                 is_write = true;
-                delay = dram_access(sys->dram, line_addr, is_write);
+                delay += dram_access(sys->dram, line_addr, is_write);
             }
         }
     }
@@ -370,12 +370,12 @@ uint64_t memsys_l2_access(MemorySystem *sys, uint64_t line_addr,
         CacheResult result_l2 = cache_access(sys->l2cache, line_addr, is_write, core_id);
         if(result_l2 == MISS)
         {
-            delay = dram_access(sys->dram, line_addr, is_write);
+            delay += dram_access(sys->dram, line_addr, is_write);
             dirty = cache_install(sys->l2cache, line_addr, is_write, core_id);
             if(dirty)
             {
                 is_write = true;
-                delay += dram_access(sys->dram, line_addr, is_write);
+                dram_access(sys->dram, line_addr, is_write);
             }
         }
     }
