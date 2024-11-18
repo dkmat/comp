@@ -269,7 +269,8 @@ uint64_t memsys_access_modeBC(MemorySystem *sys, uint64_t line_addr,
         printf("\tAccessing L1 cache!\n");
     #endif
     uint64_t delay = ICACHE_HIT_LATENCY;
-    bool is_write, dirty;
+    bool is_write;
+    bool dirty = false;
     bool write_back = false;
     if (type == ACCESS_TYPE_IFETCH)
     {
@@ -359,17 +360,23 @@ uint64_t memsys_l2_access(MemorySystem *sys, uint64_t line_addr,
             dirty = cache_install(sys->l2cache, line_addr, is_write, core_id);
             if(dirty)
             {
+                is_write = true;
                 dram_access(sys->dram, line_addr, is_write);
             }
         }
     }
     else
     {
-        CacheResult hit_l2 = cache_access(sys->l2cache, line_addr, is_write, core_id);
-        if(hit_l2 == MISS)
+        CacheResult result_l2 = cache_access(sys->l2cache, line_addr, is_write, core_id);
+        if(result_l2 == MISS)
         {
             delay = dram_access(sys->dram, line_addr, is_write);
-            cache_install(sys->l2cache, line_addr, is_write, core_id);
+            dirty = cache_install(sys->l2cache, line_addr, is_write, core_id);
+            if(dirty)
+            {
+                is_write = true;
+                dram_access(sys->dram, line_addr, is_write);
+            }
         }
     }
     
