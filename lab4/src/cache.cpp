@@ -141,6 +141,7 @@ CacheResult cache_access(Cache *c, uint64_t line_addr, bool is_write,
         result = (c->cacheSets[index].cacheLines[i].tag == tag)? HIT : MISS;
         if(result == HIT) 
         {
+            c->cacheSets[index].cacheLines[i].accessTime = current_cycle;
             if(is_write)
             {
                 c->cacheSets[index].cacheLines[i].dirty = true;
@@ -242,12 +243,11 @@ unsigned int cache_find_victim(Cache *c, unsigned int set_index,
     #endif
     if(c->replacementPolicy == LRU)
     {
-        uint64_t least = 1ULL << 63;
+        uint64_t least = (1ULL << 63) - 1;
         for(unsigned int i = 0; i < c->ways; i++)
         {
             if(!c->cacheSets[set_index].cacheLines[i].valid)
             {
-                
                 way = i;
                 break;
             }
@@ -271,6 +271,10 @@ unsigned int cache_find_victim(Cache *c, unsigned int set_index,
         else
         {
             printf("\t\tFound a victim (policy_num: %d, idx: %d)\n", c->replacementPolicy, way);
+            if(c->cacheSets[set_index].cacheLines[way].dirty)
+            {
+                printf("\t\tVictim was dirty!\n");
+            }
         }  
     #endif
     return way;
