@@ -173,7 +173,7 @@ CacheResult cache_access(Cache *c, uint64_t line_addr, bool is_write,
  * @param is_write Whether this install is triggered by a write.
  * @param core_id The CPU core ID that requested this access.
  */
-void cache_install(Cache *c, uint64_t line_addr, bool is_write,
+bool cache_install(Cache *c, uint64_t line_addr, bool is_write,
                    unsigned int core_id);
 
 /**

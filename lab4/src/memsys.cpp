@@ -264,23 +264,63 @@ uint64_t memsys_access_modeA(MemorySystem *sys, uint64_t line_addr,
 uint64_t memsys_access_modeBC(MemorySystem *sys, uint64_t line_addr,
                               AccessType type, unsigned int core_id)
 {
-    uint64_t delay = 0;
-
+    #ifdef DEBUG
+        printf("\nAccessing memory in mode BC (line_addr: %ld, AccessType: %d, core_id: %d)\n", line_addr, type, core_id);
+        printf("\tAccessing L1 cache!\n");
+    #endif
+    uint64_t delay = ICACHE_HIT_LATENCY;
+    bool is_write, dirty;
+    bool write_back = false;
     if (type == ACCESS_TYPE_IFETCH)
     {
         // TODO: Simulate the instruction fetch and update delay accordingly.
+        is_write = false;
+        CacheResult result_l1;
+        result_l1 = cache_access(sys->icache, line_addr, is_write, core_id);
+        if(result_l1 == MISS)
+        {
+            delay = memsys_l2_access(sys, line_addr, write_back, core_id);
+            dirty = cache_install(sys->icache, line_addr, is_write, core_id);
+        }
     }
 
     if (type == ACCESS_TYPE_LOAD)
     {
         // TODO: Simulate the data load and update delay accordingly.
+        is_write = false;
+        CacheResult result_l1;
+        result_l1 = cache_access(sys->dcache, line_addr, is_write, core_id);
+        if(result_l1 == MISS)
+        {
+            delay = memsys_l2_access(sys, line_addr, write_back, core_id);
+            dirty = cache_install(sys->dcache, line_addr, is_write, core_id);
+        }
     }
 
     if (type == ACCESS_TYPE_STORE)
     {
         // TODO: Simulate the data store and update delay accordingly.
+        is_write = true;
+        CacheResult result_l1;
+        result_l1 = cache_access(sys->dcache, line_addr, is_write, core_id);
+        if(result_l1 == MISS)
+        {
+            delay = memsys_l2_access(sys, line_addr, write_back, core_id);
+            dirty = cache_install(sys->dcache, line_addr, is_write, core_id);
+        }
     }
-
+    
+    if(dirty)
+    {
+        write_back = true;
+        memsys_l2_access(sys, line_addr, write_back, core_id);
+    }
+    #ifdef DEBUG
+        if(dirty)
+        {
+            printf("\tEvicted L1 entry was dirty! Performing writeback (addr: %ld)\n", line_addr);
+        }
+    #endif
     return delay;
 }
 
@@ -304,9 +344,35 @@ uint64_t memsys_l2_access(MemorySystem *sys, uint64_t line_addr,
                           bool is_writeback, unsigned int core_id)
 {
     uint64_t delay = L2CACHE_HIT_LATENCY;
-
+    #ifdef DEBUG
+        printf("\tAccessing L2 cache!\n");
+    #endif
     // TODO: Perform the L2 cache access.
-
+    bool is_write = false;
+    bool dirty = false;
+    if(is_writeback)
+    {
+        is_write = true;
+        CacheResult result_l2 = cache_access(sys->l2cache, line_addr, is_write, core_id);
+        if(result_l2 == MISS)
+        {
+            dirty = cache_install(sys->l2cache, line_addr, is_write, core_id);
+            if(dirty)
+            {
+                dram_access(sys->dram, line_addr, is_write);
+            }
+        }
+    }
+    else
+    {
+        CacheResult hit_l2 = cache_access(sys->l2cache, line_addr, is_write, core_id);
+        if(hit_l2 == MISS)
+        {
+            delay = dram_access(sys->dram, line_addr, is_write);
+            cache_install(sys->l2cache, line_addr, is_write, core_id);
+        }
+    }
+    
     // TODO: Use the dram_access() function to get the delay of an L2 miss.
     // TODO: Use the dram_access() function to perform writebacks to memory.
     //       Note that writebacks are done off the critical path.

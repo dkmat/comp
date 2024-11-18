@@ -19,13 +19,17 @@
 
 // TODO: Define any other data structures you need here.
 // Refer to Appendix B for details on data structures you will need here.
-
+typedef struct RowBuffer
+{
+    bool valid;
+    int rowId;
+} RowBuffer;
 /** A DRAM module. */
 typedef struct DRAM
 {
     // TODO: Define any other fields you need here.
     // Refer to Appendix B for details on other fields you will need here.
-
+    RowBuffer *RowbufEntries;
     /**
      * The total number of times DRAM was accessed for a read.
      * You should initialize this to 0 and update it for every DRAM read!
