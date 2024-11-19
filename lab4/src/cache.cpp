@@ -195,7 +195,7 @@ bool cache_install(Cache *c, uint64_t line_addr, bool is_write,
     #endif
     uint64_t way = cache_find_victim(c, static_cast<int>(index), core_id);
     c->lastLine = c->cacheSets[index].cacheLines[way];
-    if(c->lastLine.dirty) 
+    if(c->lastLine.valid && c->lastLine.dirty) 
     {
         dirty = true;
         c->stat_dirty_evicts++;
@@ -204,7 +204,15 @@ bool cache_install(Cache *c, uint64_t line_addr, bool is_write,
     c->cacheSets[index].cacheLines[way].tag = (line_addr & c->tag_mask) >> c->index_bits;
     c->cacheSets[index].cacheLines[way].accessTime = current_cycle;
     c->cacheSets[index].cacheLines[way].coreId = core_id;
-    c->cacheSets[index].cacheLines[way].dirty = false;
+    if(is_write)
+    {
+        c->cacheSets[index].cacheLines[way].dirty = true;
+    }
+    else
+    {
+        c->cacheSets[index].cacheLines[way].dirty = false;
+    }
+    
     #ifdef DEBUG
         printf("\t\tNew cache line installed (dirty: %d, tag: %ld, core_id: %d, last_access_time: %ld)\n",
         c->cacheSets[index].cacheLines[way].dirty,c->cacheSets[index].cacheLines[way].tag, 

@@ -268,26 +268,29 @@ uint64_t memsys_access_modeBC(MemorySystem *sys, uint64_t line_addr,
         printf("\nAccessing memory in mode BC (line_addr: %ld, AccessType: %d, core_id: %d)\n", line_addr, type, core_id);
         printf("\tAccessing L1 cache!\n");
     #endif
-    uint64_t delay = ICACHE_HIT_LATENCY;
+    uint64_t delay = 0;
     bool is_write;
     bool dirty = false;
     bool write_back = false;
+    uint64_t evicted_address;
     if (type == ACCESS_TYPE_IFETCH)
     {
         // TODO: Simulate the instruction fetch and update delay accordingly.
+        delay = ICACHE_HIT_LATENCY;
         is_write = false;
         CacheResult result_l1;
         result_l1 = cache_access(sys->icache, line_addr, is_write, core_id);
         if(result_l1 == MISS)
         {
             delay += memsys_l2_access(sys, line_addr, write_back, core_id);
-            dirty = cache_install(sys->icache, line_addr, is_write, core_id);
+            cache_install(sys->icache, line_addr, is_write, core_id);
         }
     }
 
     if (type == ACCESS_TYPE_LOAD)
     {
         // TODO: Simulate the data load and update delay accordingly.
+        delay = DCACHE_HIT_LATENCY;
         is_write = false;
         CacheResult result_l1;
         result_l1 = cache_access(sys->dcache, line_addr, is_write, core_id);
@@ -301,6 +304,7 @@ uint64_t memsys_access_modeBC(MemorySystem *sys, uint64_t line_addr,
     if (type == ACCESS_TYPE_STORE)
     {
         // TODO: Simulate the data store and update delay accordingly.
+        delay = DCACHE_HIT_LATENCY;
         is_write = true;
         CacheResult result_l1;
         result_l1 = cache_access(sys->dcache, line_addr, is_write, core_id);
@@ -313,8 +317,11 @@ uint64_t memsys_access_modeBC(MemorySystem *sys, uint64_t line_addr,
     
     if(dirty)
     {
+        evicted_address = sys->dcache->lastLine.tag << sys->dcache->index_bits;
+        uint64_t index = line_addr & sys->dcache->index_mask;
+        evicted_address |= index;
         write_back = true;
-        memsys_l2_access(sys, line_addr, write_back, core_id);
+        memsys_l2_access(sys, evicted_address, write_back, core_id);
     }
     #ifdef DEBUG
         if(dirty)
@@ -345,37 +352,40 @@ uint64_t memsys_l2_access(MemorySystem *sys, uint64_t line_addr,
                           bool is_writeback, unsigned int core_id)
 {
     uint64_t delay = L2CACHE_HIT_LATENCY;
+    uint64_t evicted_address;
     #ifdef DEBUG
         printf("\tAccessing L2 cache!\n");
     #endif
     // TODO: Perform the L2 cache access.
-    bool is_write = false;
     bool dirty = false;
     if(is_writeback)
     {
-        is_write = true;
-        CacheResult result_l2 = cache_access(sys->l2cache, line_addr, is_write, core_id);
+        CacheResult result_l2 = cache_access(sys->l2cache, line_addr, true, core_id);
         if(result_l2 == MISS)
         {
-            dirty = cache_install(sys->l2cache, line_addr, is_write, core_id);
+            dirty = cache_install(sys->l2cache, line_addr, true, core_id);
             if(dirty)
             {
-                is_write = true;
-                delay += dram_access(sys->dram, line_addr, is_write);
+                int index = line_addr & sys->l2cache->index_mask;
+                evicted_address = sys->l2cache->lastLine.tag << sys->l2cache->index_bits;
+                evicted_address |= index;
+                delay += dram_access(sys->dram, evicted_address, true);
             }
         }
     }
     else
     {
-        CacheResult result_l2 = cache_access(sys->l2cache, line_addr, is_write, core_id);
+        CacheResult result_l2 = cache_access(sys->l2cache, line_addr, false, core_id);
         if(result_l2 == MISS)
         {
-            delay += dram_access(sys->dram, line_addr, is_write);
-            dirty = cache_install(sys->l2cache, line_addr, is_write, core_id);
+            delay += dram_access(sys->dram, line_addr, false);
+            dirty = cache_install(sys->l2cache, line_addr, false, core_id);
             if(dirty)
             {
-                is_write = true;
-                dram_access(sys->dram, line_addr, is_write);
+                int index = line_addr & sys->l2cache->index_mask;
+                evicted_address = sys->l2cache->lastLine.tag << sys->l2cache->index_bits;
+                evicted_address |= index;
+                dram_access(sys->dram, evicted_address, true);
             }
         }
     }

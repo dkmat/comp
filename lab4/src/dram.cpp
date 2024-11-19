@@ -86,7 +86,7 @@ DRAM *dram_new()
     newDram->RowbufEntries = (RowBuffer*)calloc(NUM_BANKS, sizeof(RowBuffer));
     for(unsigned int i = 0; i < NUM_BANKS; i++)
     {
-        newDram->RowbufEntries[i].rowId = -1;
+        newDram->RowbufEntries[i].rowId = 0;
         newDram->RowbufEntries[i].valid = false;
     }
     uint64_t num = ROW_BUFFER_SIZE / CACHE_LINESIZE;
@@ -228,13 +228,15 @@ uint64_t dram_access_mode_CDEF(DRAM *dram, uint64_t line_addr,
     }
     if(DRAM_PAGE_POLICY == OPEN_PAGE)
     {
+        // if(is_dram_write)
+        // {
+        //     delay += DELAY_ACT + DELAY_CAS + DELAY_PRE;
+        //     dram->RowbufEntries[bank_index].valid = false;
+        // }
+        // else 
         if(dram->RowbufEntries[bank_index].valid)
         {
-            if(is_dram_write)
-            {
-                delay += DELAY_ACT + DELAY_CAS + DELAY_PRE;
-            }
-            else if(rowId == dram->RowbufEntries[bank_index].rowId)
+            if(rowId == dram->RowbufEntries[bank_index].rowId)
             {
                 delay += DELAY_CAS;
             }
@@ -248,7 +250,7 @@ uint64_t dram_access_mode_CDEF(DRAM *dram, uint64_t line_addr,
         {
             dram->RowbufEntries[bank_index].valid = true;
             dram->RowbufEntries[bank_index].rowId = rowId;
-            delay = DELAY_SIM_MODE_B;
+            delay += DELAY_ACT + DELAY_CAS;
         }
     }
     return delay;
