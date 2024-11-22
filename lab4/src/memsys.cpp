@@ -424,29 +424,81 @@ uint64_t memsys_access_modeDEF(MemorySystem *sys, uint64_t v_line_addr,
 {
     uint64_t delay = 0;
     uint64_t p_line_addr = 0;
-    (void)p_line_addr;
+    uint64_t num = PAGE_SIZE;
+    int page_offset = 0;
+    while(num >>= 1)
+    {
+        page_offset++;
+    }
+    num = DCACHE_SIZE;
+    int cache_offset = 0;
+    while(num >>= 1)
+    {
+        cache_offset++;
+    }
+    int offset_bits = page_offset - cache_offset;
+    uint64_t offset_mask = (1ULL << offset_bits) - 1;
+    uint64_t offset = v_line_addr & offset_mask;
+    uint64_t vpn  = v_line_addr >> offset_bits;
     // TODO: First convert lineaddr from virtual (v) to physical (p) using the
     //       function memsys_convert_vpn_to_pfn(). Page size is defined to be
     //       4 KB, as indicated by the PAGE_SIZE constant.
     // Note: memsys_convert_vpn_to_pfn() operates at page granularity and
     //       returns a page number.
-    p_line_addr = v_line_addr; // Replace this with a correct implementation.
-
+    uint64_t pfn = memsys_convert_vpn_to_pfn(sys, vpn, core_id); // Replace this with a correct implementation.
+    p_line_addr = pfn << offset_bits;
+    p_line_addr |= offset;
+    CacheResult cache_result = MISS;
+    bool is_write;
+    bool write_back = false;
+    bool dirty = false;
+    uint64_t evicted_address;
     if (type == ACCESS_TYPE_IFETCH)
     {
         // TODO: Simulate the instruction fetch and update delay accordingly.
+        delay = ICACHE_HIT_LATENCY;
+        is_write = false;
+        cache_result = cache_access(sys->icache_coreid[core_id], p_line_addr, is_write, core_id);
+        if(cache_result == MISS)
+        {
+            delay += memsys_l2_access(sys, p_line_addr, write_back, core_id);
+            cache_install(sys->icache_coreid[core_id], p_line_addr, is_write, core_id);
+        }
     }
 
     if (type == ACCESS_TYPE_LOAD)
     {
         // TODO: Simulate the data load and update delay accordingly.
+        delay = DCACHE_HIT_LATENCY;
+        is_write = false;
+        cache_result = cache_access(sys->dcache_coreid[core_id], p_line_addr, is_write, core_id);
+        if(cache_result == MISS)
+        {
+            delay += memsys_l2_access(sys, p_line_addr, write_back, core_id);
+            dirty = cache_install(sys->dcache_coreid[core_id], p_line_addr, is_write, core_id);
+        }
     }
 
     if (type == ACCESS_TYPE_STORE)
     {
         // TODO: Simulate the data store and update delay accordingly.
+        delay = DCACHE_HIT_LATENCY;
+        is_write = true;
+        cache_result = cache_access(sys->dcache_coreid[core_id], p_line_addr, is_write, core_id);
+        if(cache_result == MISS)
+        {
+            delay += memsys_l2_access(sys, p_line_addr, write_back, core_id);
+            dirty = cache_install(sys->dcache_coreid[core_id], p_line_addr, is_write, core_id);
+        }
     }
-
+    if(dirty)
+    {
+        evicted_address = sys->dcache_coreid[core_id]->lastLine.tag << sys->dcache_coreid[core_id]->index_bits;
+        uint64_t index = p_line_addr & sys->dcache_coreid[core_id]->index_mask;
+        evicted_address |= index;
+        write_back = true;
+        memsys_l2_access(sys, evicted_address, write_back, core_id);
+    }
     return delay;
 }
 
