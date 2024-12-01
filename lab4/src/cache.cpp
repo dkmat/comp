@@ -246,6 +246,7 @@ unsigned int cache_find_victim(Cache *c, unsigned int set_index,
     // TODO: In part E, for extra credit, implement static way partitioning.
     // TODO: In part F, for extra credit, implement dynamic way partitioning.
     unsigned int way = 0;
+    uint64_t last_access_time = 0;
     #ifdef DEBUG
         printf("\t\tLooking for victim to evict (policy: %d)...\n", c->replacementPolicy);
     #endif
@@ -262,6 +263,57 @@ unsigned int cache_find_victim(Cache *c, unsigned int set_index,
             if(c->cacheSets[set_index].cacheLines[i].accessTime < least)
             {
                 least = c->cacheSets[set_index].cacheLines[i].accessTime;
+                way = i;
+            }
+        }
+    }
+    else if(c->replacementPolicy == SWP)
+    {
+        for(unsigned int i = 0; i < c->ways; i++)
+        {
+            if(!c->cacheSets[set_index].cacheLines[i].valid)
+            {
+                way = i;
+                break;
+            }
+
+        }
+        uint64_t num_core_0 = 0;
+        for(unsigned int i = 0; i < c->ways; i++)
+        {
+            if(c->cacheSets[set_index].cacheLines[i].coreId == 0)
+            {
+                num_core_0++;
+            }
+        }
+        int core_swap = 0;
+        if(num_core_0 < SWP_CORE0_WAYS)
+        {
+            core_swap = 1;
+        }
+        else if(num_core_0 == SWP_CORE0_WAYS)
+        {
+            core_swap = core_id;
+        }
+        else
+        {
+            core_swap = 0;
+        }
+        uint64_t found_first = 0;
+        for(unsigned int i = 0; i < c->ways; i++)
+        {
+            if(found_first == 1 && c->cacheSets[set_index].cacheLines[i].valid && 
+            c->cacheSets[set_index].cacheLines[i].coreId == core_swap && 
+            c->cacheSets[set_index].cacheLines[i].accessTime < last_access_time)
+            {
+                last_access_time = c->cacheSets[set_index].cacheLines[i].accessTime;
+                way = i;
+            }
+            if(found_first == 0 && c->cacheSets[set_index].cacheLines[i].valid && 
+            c->cacheSets[set_index].cacheLines[i].coreId == core_swap)
+            {
+                last_access_time = c->cacheSets[set_index].cacheLines[i].accessTime;
+                found_first = 1;
                 way = i;
             }
         }
